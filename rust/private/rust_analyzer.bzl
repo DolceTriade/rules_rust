@@ -101,6 +101,9 @@ def _rust_analyzer_aspect_impl(target, ctx):
         if RustAnalyzerGroupInfo in ctx.rule.attr.actual:
             dep_infos.extend(ctx.rule.attr.actul[RustAnalyzerGroupInfo])
 
+    if hasattr(ctx.rule.attr, "proto") and ctx.rule.attr.proto != None:
+        print(ctx.rule.attr.proto)
+
     if rust_common.crate_group_info in target:
         return [RustAnalyzerGroupInfo(deps = dep_infos)]
 
@@ -163,7 +166,7 @@ def find_proc_macro_dylib_path(toolchain, target):
     return None
 
 rust_analyzer_aspect = aspect(
-    attr_aspects = ["deps", "proc_macro_deps", "crate", "actual"],
+    attr_aspects = ["deps", "proc_macro_deps", "crate", "actual", "proto"],
     implementation = _rust_analyzer_aspect_impl,
     toolchains = [str(Label("//rust:toolchain_type"))],
     incompatible_use_toolchain_transition = True,
