@@ -102,7 +102,38 @@ def _rust_analyzer_aspect_impl(target, ctx):
             dep_infos.extend(ctx.rule.attr.actul[RustAnalyzerGroupInfo])
 
     if hasattr(ctx.rule.attr, "proto") and ctx.rule.attr.proto != None:
-        print(ctx.rule.attr.proto)
+        specs = []
+        infos = []
+        protos = target[rust_common.crate_group_info].dep_variant_infos.to_list()
+        idx = 0
+        for info in protos:
+            idx += 1
+            last = False
+            if idx == len(protos):
+                last = True
+            crate_info = info.crate_info
+            crate_spec = ctx.actions.declare_file(crate_info.owner.name + ".rust_analyzer_crate_spec")
+            rust_analyzer_info = RustAnalyzerInfo(
+                crate = crate_info,
+                cfgs = cfgs,
+                env = {},
+                deps = [] if not last else infos,
+                crate_specs = depset(direct = [crate_spec], transitive = [] if not last else [depset(direct = [spec]) for spec in specs]),
+                proc_macro_dylib_path = find_proc_macro_dylib_path(toolchain, target),
+                build_info = info.build_info,
+            )
+            ctx.actions.write(
+                output = crate_spec,
+                content = json.encode(_create_single_crate(ctx, rust_analyzer_info)),
+            )
+            infos.append(rust_analyzer_info)
+            specs.append(crate_spec)
+
+        return [
+            infos[-1],
+            RustAnalyzerGroupInfo(deps = infos),
+            OutputGroupInfo(rust_analyzer_crate_spec = specs),
+        ]
 
     if rust_common.crate_group_info in target:
         return [RustAnalyzerGroupInfo(deps = dep_infos)]
